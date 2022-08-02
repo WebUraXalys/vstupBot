@@ -10,7 +10,7 @@ bot = Bot(token=os.getenv('TOKEN'))
 dp = Dispatcher(bot)
 
 # Preparing for using MongoDB
-client = pymongo.MongoClient('130.61.64.244', tls=True, tlsAllowInvalidCertificates=True)
+client = os.getenv("pymongo_client")
 
 
 @dp.message_handler(commands="start")
