@@ -10,7 +10,7 @@ def get_offer_page() -> str:
     Викликає Not200Exception якщо не вдалось получити доступ
     """
     url = BASE_SITE + OFFERS_URL
-    console.print("\nЗавантаження головної сторіник конкурсних пропозицій... ", end="")
+    console.print("Завантаження головної сторіник конкурсних пропозицій... ", end="")
     req = requests.get(url, headers=HEADERS)
     if req.ok:
         console.print(f"[black on green]УСПІШНО[/]")
