@@ -19,19 +19,10 @@ coll = db.specs
 
 @dp.message_handler(commands="start")
 async def start(message: types.Message):
-    await message.reply("Привіт.")
     keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
     buttons = ["Слава Україні!"]
     keyboard.add(*buttons)
-
-    await message.answer("Робота кнопок", reply_markup=keyboard)
-
-
-@dp.message_handler()
-async def menu(message: types.Message):
-    switch_keyboard = types.InlineKeyboardMarkup()
-    switch_keyboard.add(types.InlineKeyboardButton(text="проба", switch_inline_query=""))
-    await message.answer("Вроді запрацювало")
+    await message.reply("Привіт, абітурієнте.", reply_markup=keyboard)
 
 
 @dp.message_handler(lambda message: message.text == "Слава Україні!")
