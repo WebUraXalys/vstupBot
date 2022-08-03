@@ -1,7 +1,7 @@
 import os
+import asyncio
 import pymongo
 from aiogram import Bot, Dispatcher, executor, types
-from urllib.parse import quote_plus
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -10,9 +10,9 @@ bot = Bot(token=os.getenv('TOKEN'))
 dp = Dispatcher(bot)
 
 # Preparing for using MongoDB
-# Є ще проблема з підключенням до бази. Буду вирішувати
-# pymongo.errors.InvalidURI: Username and password must be escaped according to RFC 3986, use urllib.parse.quote_plus
-client = pymongo.MongoClient("Адресу так дам, не буду ж пароль зливати", tls=True, tlsAllowInvalidCertificates=True)
+username = os.getenv('user_name')
+pwd = os.getenv('pwd')
+client = pymongo.MongoClient(f"mongodb://{username}:{pwd}@130.61.64.244/vst", tls=True, tlsAllowInvalidCertificates=True)
 db = client.vst
 coll = db.specs
 
@@ -20,15 +20,26 @@ coll = db.specs
 @dp.message_handler(commands="start")
 async def start(message: types.Message):
     await message.reply("Привіт.")
+    keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
+    buttons = ["Слава Україні!"]
+    keyboard.add(*buttons)
+
+    await message.answer("Робота кнопок", reply_markup=keyboard)
+
+
+@dp.message_handler(lambda message: message.text == "Слава Україні!")
+async def slava(message: types.Message):
+    await message.reply("Героям слава!", reply_markup=types.ReplyKeyboardRemove())
 
 
 @dp.message_handler(commands="get")
 async def get_data(message: types.Message):
     # Наразі функціональності не має, циклом хочу перевірити, як працює pymongo
     c = 0
-    if c<10:
-        for value in coll.find():
-            await message.reply(value)
+    for value in coll.find():
+        if c < 10:
+            await message.answer(value["code"] + value["name"])
+            await asyncio.sleep(1)
             c += 1
 
 
