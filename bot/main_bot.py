@@ -27,6 +27,13 @@ async def start(message: types.Message):
     await message.answer("Робота кнопок", reply_markup=keyboard)
 
 
+@dp.message_handler()
+async def menu(message: types.Message):
+    switch_keyboard = types.InlineKeyboardMarkup()
+    switch_keyboard.add(types.InlineKeyboardButton(text="проба", switch_inline_query=""))
+    await message.answer("Вроді запрацювало")
+
+
 @dp.message_handler(lambda message: message.text == "Слава Україні!")
 async def slava(message: types.Message):
     await message.reply("Героям слава!", reply_markup=types.ReplyKeyboardRemove())
@@ -37,7 +44,7 @@ async def get_data(message: types.Message):
     # Наразі функціональності не має, циклом хочу перевірити, як працює pymongo
     c = 0
     for value in coll.find():
-        if c < 10:
+        if c < 5:
             await message.answer(value["code"] + value["name"])
             await asyncio.sleep(1)
             c += 1
