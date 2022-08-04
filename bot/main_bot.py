@@ -61,13 +61,10 @@ async def get_data(message: types.Message):
     # Наразі функціональності не має, циклом хочу перевірити, як працює pymongo
     c = 0
     for value in coll.find():
-        list_of = []
-        file = open("File.txt", "w")
-        for value in coll.find():
-            name = value['name'] + "\n"
-            list_of.append(name)
-        file.writelines(list_of)
-    await message.answer(list_of)
+        if c < 10:
+            await message.answer(value["code"] + " " + value["name"])
+            await asyncio.sleep(0.05)
+            c += 1
 
 @dp.message_handler(commands="help")
 async def help_user(message: types.Message):
@@ -91,7 +88,6 @@ async def config_user(message: types.Message):
         await message.answer('Рекомендуємо тобі пройти <a href="https://naurok.com.ua/test/yaka-ti-feya-vinks-1455683.html">цей тест</a>', parse_mode="HTML", disable_web_page_preview=True)
     elif message.text == "Так":
         await message.answer("Добра-добра")
-
 
 if __name__ == "__main__":
     executor.start_polling(dp, skip_updates=True)
