@@ -22,7 +22,7 @@ coll = db.specs
 async def start(message: types.Message):
     await message.reply("Привіт\n"
                         "Тебе вітає vstupBot. Я створений, щоб допомогти абітурієнтам обрати найкращий університет для вступу на бюджет.")
-    # await asyncio.sleep(3.5)
+    await asyncio.sleep(3.5)
 
     buttons = [
         types.InlineKeyboardButton(text="Текстовий гайд", url="google.com", callback_data="trusted"),
@@ -32,7 +32,7 @@ async def start(message: types.Message):
     keyboard.add(*buttons)
     await message.answer("Посилання на інструкцію до бота", reply_markup=keyboard)
 
-    # await asyncio.sleep(5)
+    await asyncio.sleep(5)
     buttons = [
         types.InlineKeyboardButton(text="Так", callback_data="yes"),
         types.InlineKeyboardButton(text="Ні", callback_data="no"),
@@ -65,6 +65,7 @@ async def get_data(message: types.Message):
             await message.answer(value["code"] + " " + value["name"])
             await asyncio.sleep(0.05)
             c += 1
+
 
 @dp.message_handler(commands="help")
 async def help_user(message: types.Message):
