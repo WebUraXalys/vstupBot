@@ -62,6 +62,8 @@ def get_full_univs_data(univs):
                 name = u["university_name"]
                 code = u["university_id"]
                 facs = u["facultets"]
+                region = u["region_name"]
+                shortname = u["university_short_name"]
                 rs = []
                 for ed in educators:
                     rs += [
@@ -127,9 +129,10 @@ def get_full_univs_data(univs):
                             "spec_name": offer.get("ssn", "Не вказано"),  # Назва спеціальності
                             "fac_name": offer.get("ufn", "Не вказано"),  # Факультет
                             "prop_name": offer.get("usn", "Не вказано"),  # Назва пропозиції
+                            "prop_type": offer.get("ustn", "Не вказано"),  # Тип пропозиції
                             "study_program": offer.get("spn", "Не вказано"),  # Освітня програма
                             "licenses_count": offer.get("ol", "Не вказано"),  # Ліцензійний обсяг
-                            "max_gov_order_count": offer.get("ox", str(int(offer.get("ol", "0")) - int(offer.get("oc", offer.get("ol", "0"))))),  # Максимальний обсяг держзамовлення
+                            "max_gov_order_count": offer.get("ox", int(offer.get("ol", "0")) - int(offer.get("oc", offer.get("ol", "0")))),  # Максимальний обсяг держзамовлення
                             "contract_count": offer.get("oc", "Не вказано"),  # Обсяг на контракт
                             "contest_subjects": contest_subjects,  # Конкурсні предмети
                             "stat": stat  # Статистика заяв
@@ -137,7 +140,9 @@ def get_full_univs_data(univs):
                         specs += [spec]
                     u = {
                         "name": name,
+                        "short_name": shortname,
                         "code": code,
+                        "region": region,
                         "facs": facs,
                         "specs": specs
                     }
