@@ -120,7 +120,7 @@ def get_full_univs_data(univs):
                             }
                         except KeyError:
                             stat = {
-                                "unset": True
+                                "unspecified": True
                             }
                         spec = {
                             "spec_code": offer.get("ssc", "Не вказано"),  # Код спеціальності
