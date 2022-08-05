@@ -5,7 +5,7 @@ from time import sleep
 
 
 def connect_to_db():
-    console.print("Підключення до бази даних... ", end="")
+    console.print("Підключення до бази даних...", end="")
     try:
         client = MongoClient(DB_IP_ADDR, username=DB_USER, password=DB_PASSWORD, authSource='admin', authMechanism='SCRAM-SHA-256', tls=True, tlsAllowInvalidCertificates=True)
         console.print(f"[black on green]УСПІШНО[/]")
@@ -54,4 +54,19 @@ def update_specs(vst, spec_list):
     else:
         specs = vst["specs"]
     console.print(f"[black on blue]ПЕРЕДАНО[/]")
+    _insert()
+
+
+def update_univs(vst, udata):
+    def _insert():
+        univs.insert_many(
+            udata
+        )
+        console.print(f"[black on green]УСПІШНО[/]")
+    console.print("Оновлення списку спеціальностей... ", end="")
+    if "univs" in vst.list_collection_names():
+        vst["univs"].drop()
+        univs = vst["univs"]
+    else:
+        univs = vst["univs"]
     _insert()
