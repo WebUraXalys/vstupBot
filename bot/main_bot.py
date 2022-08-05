@@ -71,24 +71,35 @@ async def set_code(message: types.Message):
     spec_codes = []
     list_of_spec = message.text.split()
     user_id = message.from_user.id
+
     for value in list_of_spec[1::]:
-        spec_codes.append(value)
+        # Code checks does specialization exist and add it to list of chosen ones
+        finder = coll.find({'name': {"$regex": value}}, {'_id': 0, "name": 1})
+        c = []
+        for f in finder:
+            c.append(coll)
+        if len(c) == 1:
+            spec_codes.append(value)
+        elif len(c) < 1:
+            await message.reply(f"Такої спеціальності нема: {value}")
 
     # Work with database. Firstly we check does user exist in our db.
     # Then we create or update document in collection. It depends on result from previous step
     res = db.users_specs.find({'user_id': user_id})
     result = []
     for r in res:
-        print(r)
         result.append(r)
     if len(result) < 1:
         await message.answer("Нема запису")
         db.users_specs.insert_one({'user_id': user_id,
                                    'spec_codes': spec_codes})
         await message.answer("Запис внесено до бази даних")
+        await message.answer(f"Вибрано спеціальності: {spec_codes}")
     elif len(result) == 1:
         db.users_specs.update_one({'user_id': user_id}, {'$set': {'spec_codes': spec_codes}})
         await message.answer("Запис в базі даних оновлено")
+        await message.answer(f"Вибрано спеціальності: {spec_codes}")
+
 
 
 @dp.message_handler(commands="get_id")
