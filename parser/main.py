@@ -24,7 +24,7 @@ def main():
     table.add_column("Name", style="magenta")
     table.add_column("Qty. of specs", style="cyan")
     for index, univ in enumerate(udata):
-        table.add_row("#"+index, univ["name"], str(len(univ["specs"])))
+        table.add_row("#"+str(index), univ["name"], str(len(univ["specs"])))
     console.print(table)
 
 
