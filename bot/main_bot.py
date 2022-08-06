@@ -1,15 +1,20 @@
-import os
 import asyncio
+import os
+
 import pymongo
-import markup as nav
 from aiogram import Bot, Dispatcher, executor, types
+from aiogram.contrib.fsm_storage.memory import MemoryStorage
+from aiogram.dispatcher import FSMContext
+from aiogram.dispatcher.filters.state import State, StatesGroup
 from dotenv import load_dotenv
+
+import markup as nav
 
 load_dotenv()
 
 bot = Bot(token=os.getenv('TOKEN'))
-dp = Dispatcher(bot)
-bots_username = "@test_payment_25435_bot"
+storage = MemoryStorage()
+dp = Dispatcher(bot, storage=storage)
 
 # Preparing for using MongoDB
 username = os.getenv('user_name')
@@ -17,6 +22,14 @@ pwd = os.getenv('pwd')
 client = pymongo.MongoClient(f"mongodb://{username}:{pwd}@130.61.64.244/vst", tls=True, tlsAllowInvalidCertificates=True)
 db = client.vst
 coll = db.specs
+
+
+# State
+class ExamsBals(StatesGroup):
+    ua = State()
+    math = State()
+    history = State()
+    correct = State()
 
 
 @dp.message_handler(commands="start")
@@ -144,7 +157,7 @@ async def add_or_remove_region(call: types.CallbackQuery):
             await call.message.answer(f"Додано регіон: {region_name} область")
 
 
-@dp.callback_query_handler(text_contains="The end")
+@dp.callback_query_handler(text_contains="The end", state=None)
 async def get_exams_result(call: types.CallbackQuery):
     await call.answer()
     if "repeat" not in call.data.split():
@@ -160,73 +173,116 @@ async def get_exams_result(call: types.CallbackQuery):
             else:
                 mess += f"✅{region} область\n"
         await call.message.answer(mess)
-    await call.message.answer("Тепер потрібно ввести бали з екзаменів. Наразі доступно лише три предмета, які були на НМТ: українська мова, математика та історія."
-                              "Почергово нажміть кожну з кнопок та відповіддю введіть свій бал. Опісля поверніться до цього "
-                              "повідомлення та натисність кнопку \"Зберегти\" \n\n",
-                              reply_markup=nav.examsMenu)
+    await call.message.answer("Тепер нам потрібно дізнатись ваші результати НМТ, щоб вирахувати середній бал для вибраної спеціальності.")
+    await call.message.answer("Введіть бал з української мови")
+    await ExamsBals.ua.set()
 
 
-@dp.callback_query_handler(text_contains="exam")
-async def get_exams_result(call: types.CallbackQuery):
-    await call.answer()
-    exam_mark = call.data.split()
-    index = exam_mark[1]
-    if index == "ua":
-        await call.message.answer("Введіть бал з української мови")
-    elif index == "math":
-        await call.message.answer("Введіть бал з математики")
-    elif index == "history":
-        await call.message.answer("Введіть бал з історії")
+@dp.message_handler(state=ExamsBals.ua)
+async def get_ua(message: types.Message, state=FSMContext):
+    ua1 = message.text
+    finita_la_comedia = False
 
-
-@dp.message_handler(lambda message: int(message.text) in range(-1000, 1000))
-async def push_exam(message: types.Message):
-    if not message.reply_to_message:
-        await message.answer("Потрібно відправити як відповідь на повідомлення")
-
-    elif message.reply_to_message:
-        correct = True
-        if int(message.text) != 0 and int(message.text) <= 200:
-            separated_text = message.reply_to_message.text.split()
-            user_id = message.from_user.id
-            if "української" in separated_text:
-                await message.answer(f"Бал з української мови: {message.text}")
-                db.users_specs.update_one({"user_id": user_id}, {"$set": {"UA": int(message.text)}})
-            if "математики" in separated_text:
-                await message.answer(f"Бал з математики: {message.text}")
-                db.users_specs.update_one({"user_id": user_id}, {"$set": {"Math": int(message.text)}})
-            if "історії" in separated_text:
-                await message.answer(f"Бал з історії: {message.text}")
-                db.users_specs.update_one({"user_id": user_id}, {"$set": {"History": int(message.text)}})
-
-        else:
+    try:
+        if int(ua1) == 0 or int(ua1) > 200:
             correct = False
-            if int(message.text) <= 0:
-                await message.answer("Бал не може дорівнювати нулю або бути меншим за нього")
-            else:
-                await message.answer("У вас прекрасні досягнення. Мабуть, вам не потрібна наша допомога, якщо у вас оцінка в більш ніж 200 балів")
-
-    if correct:
+        else:
+            correct = True
+    except ValueError:
+        await message.answer("Неправильний тип даних. Потрібно вводити тільки число. Повторіть спробу")
+        finita_la_comedia = True
+    if finita_la_comedia:
         pass
     else:
-        await message.answer("Помилка в балах. Виправте свої бали")
+        await state.update_data(ua=ua1, correct=correct)
+
+        await message.answer("Введіть бал з математики")
+        await ExamsBals.next()
+
+
+@dp.message_handler(state=ExamsBals.math)
+async def get_math(message: types.Message, state=FSMContext):
+    math1 = message.text
+    finita_la_comedia = False
+    try:
+        if int(math1) == 0 or int(math1) > 200:
+            correct = False
+        else:
+            correct = True
+    except ValueError:
+        await message.answer("Неправильний тип даних. Потрібно вводити тільки число. Повторіть спробу")
+        finita_la_comedia = True
+    if finita_la_comedia:
+        pass
+    else:
+        await state.update_data(math=math1, correct=correct)
+
+        await message.answer("Введіть бал з історії")
+        await ExamsBals.next()
+
+
+@dp.message_handler(state=ExamsBals.history)
+async def get_history(message: types.Message, state=FSMContext):
+    history1 = message.text
+    finita_la_comedia = False
+
+    await state.update_data(history=history1)
+    try:
+        if int(history1) == 0 or int(history1) > 200:
+            correct = False
+        else:
+            correct = True
+    except ValueError:
+        await message.answer("Неправильний тип даних. Потрібно вводити тільки число. Повторіть спробу")
+        finita_la_comedia = True
+    if finita_la_comedia:
+        pass
+    else:
+        data = await state.get_data()
+        if int(data.get("ua")) != 0 and int(data.get("ua")) <= 200:
+            db.users_specs.update_one({"user_id": message.from_user.id}, {"$set": {"UA": int(data.get("ua"))}})
+
+        if int(data.get("math")) != 0 and int(data.get("math")) <= 200:
+            db.users_specs.update_one({"user_id": message.from_user.id}, {"$set": {"Math": int(data.get("math"))}})
+        if int(data.get("history")) != 0 and int(data.get("history")) <= 200:
+            db.users_specs.update_one({"user_id": message.from_user.id}, {"$set": {"History": int(data.get("history"))}})
+
+        if not correct:
+            await message.answer("Десь ви зробили помилку. Перевірте свої відповіді та виправте їх", reply_markup=nav.save)
+        else:
+            user_coll = db.users_specs.find_one({"user_id": message.from_user.id})
+
+            ua = user_coll["UA"]
+            hst = user_coll["History"]
+            math = user_coll["Math"]
+
+            await message.answer(
+                "Готово. Перевірте свої бали. Якщо все правильно, нажміть зберегти \n\n"
+                f"Українська мова: {ua},\nІсторія: {hst},\nМатематика: {math}\n\n"
+                "Якщо ви помилилися, нажміть кнопку", reply_markup=nav.save)
+        await state.finish()
 
 
 @dp.callback_query_handler(text="save")
 async def save(call: types.CallbackQuery):
     await call.answer()
-    user_coll = db.users_specs.find_one({"user_id": call.from_user.id})
-
-    ua = user_coll["UA"]
-    hst = user_coll["History"]
-    math = user_coll["Math"]
-
-    await call.message.answer(
-        "Введені оцінки \n\n"
-        f"Українська мова: {ua},\nІсторія: {hst},\nМатематика: {math}\n\n"
-        "Якщо ви помилилися, нажміть кнопку", reply_markup=nav.save)
-    await asyncio.sleep(5)
     await call.message.answer("Налаштування завершено")
+
+
+@dp.message_handler(commands="average_mark")
+async def average(message: types.Message):
+    user_id = message.from_user.id
+    user_spec = db.users_specs.find_one({"user_id": user_id})
+    specialization = user_spec["spec_codes"]
+    regions = user_spec["region"]
+    univers = []
+    for r in regions:
+        cursor_object = db.univs.find({"region": r})
+        for objection in cursor_object:
+            print(objection)
+            # print(uni)
+    # for u in univers:
+    #     print(u["name"])
 
 
 if __name__ == "__main__":

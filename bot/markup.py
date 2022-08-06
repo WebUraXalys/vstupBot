@@ -66,13 +66,5 @@ regionBTN = [types.InlineKeyboardButton(text="АР Крим", callback_data="reg
              ]
 regions.add(*regionBTN)
 
-examsMenu = types.InlineKeyboardMarkup(row_width=1)
-examsBTN = [types.InlineKeyboardButton(text="Українська мова", callback_data="exam ua"),
-            types.InlineKeyboardButton(text="Математика", callback_data="exam math"),
-            types.InlineKeyboardButton(text="Історія", callback_data="exam history"),
-            types.InlineKeyboardButton(text="Зберегти", callback_data="save")
-            ]
-examsMenu.add(*examsBTN)
-
 save = types.InlineKeyboardMarkup()
-save.add(types.InlineKeyboardButton(text="Виправити помилку", callback_data="The end repeat"))
+save.add(types.InlineKeyboardButton(text="Зберегти", callback_data="save"), types.InlineKeyboardButton(text="Виправити помилку", callback_data="The end repeat"))
