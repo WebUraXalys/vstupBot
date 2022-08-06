@@ -1,5 +1,5 @@
 from pymongo import MongoClient
-from config import DB_USER, DB_PASSWORD, DB_IP_ADDR
+from config import DB_USER, DB_PASSWORD, DB_IP_ADDR, DB_AUTH_SOURCE
 from console import console, Progress
 from time import sleep
 
@@ -7,7 +7,7 @@ from time import sleep
 def connect_to_db():
     console.print("Підключення до бази даних...", end="")
     try:
-        client = MongoClient(DB_IP_ADDR, username=DB_USER, password=DB_PASSWORD, authSource='admin', authMechanism='SCRAM-SHA-256', tls=True, tlsAllowInvalidCertificates=True)
+        client = MongoClient(DB_IP_ADDR, username=DB_USER, password=DB_PASSWORD, authSource=DB_AUTH_SOURCE, authMechanism='SCRAM-SHA-256', tls=True, tlsAllowInvalidCertificates=True)
         console.print(f"[black on green]УСПІШНО[/]")
     except:
         console.print(f"[black on red]ПОМИЛКА[/]")
