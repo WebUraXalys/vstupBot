@@ -68,3 +68,6 @@ regions.add(*regionBTN)
 
 save = types.InlineKeyboardMarkup()
 save.add(types.InlineKeyboardButton(text="Зберегти", callback_data="save"), types.InlineKeyboardButton(text="Виправити помилку", callback_data="The end repeat"))
+
+fix = types.InlineKeyboardMarkup()
+fix.add(types.InlineKeyboardButton(text="Виправити помилку", callback_data="The end repeat"))

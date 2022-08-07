@@ -29,7 +29,8 @@ class ExamsBals(StatesGroup):
     ua = State()
     math = State()
     history = State()
-    correct = State()
+    correct_ua = State()
+    correct_math = State()
 
 
 @dp.message_handler(commands="start")
@@ -185,16 +186,16 @@ async def get_ua(message: types.Message, state=FSMContext):
 
     try:
         if int(ua1) == 0 or int(ua1) > 200:
-            correct = False
+            correct_ua = False
         else:
-            correct = True
+            correct_ua = True
     except ValueError:
         await message.answer("Неправильний тип даних. Потрібно вводити тільки число. Повторіть спробу")
         finita_la_comedia = True
     if finita_la_comedia:
         pass
     else:
-        await state.update_data(ua=ua1, correct=correct)
+        await state.update_data(ua=ua1, correct_ua=correct_ua)
 
         await message.answer("Введіть бал з математики")
         await ExamsBals.next()
@@ -206,16 +207,16 @@ async def get_math(message: types.Message, state=FSMContext):
     finita_la_comedia = False
     try:
         if int(math1) == 0 or int(math1) > 200:
-            correct = False
+            correct_math = False
         else:
-            correct = True
+            correct_math = True
     except ValueError:
         await message.answer("Неправильний тип даних. Потрібно вводити тільки число. Повторіть спробу")
         finita_la_comedia = True
     if finita_la_comedia:
         pass
     else:
-        await state.update_data(math=math1, correct=correct)
+        await state.update_data(math=math1, correct_math=correct_math)
 
         await message.answer("Введіть бал з історії")
         await ExamsBals.next()
@@ -247,8 +248,8 @@ async def get_history(message: types.Message, state=FSMContext):
         if int(data.get("history")) != 0 and int(data.get("history")) <= 200:
             db.users_specs.update_one({"user_id": message.from_user.id}, {"$set": {"History": int(data.get("history"))}})
 
-        if not correct:
-            await message.answer("Десь ви зробили помилку. Перевірте свої відповіді та виправте їх", reply_markup=nav.save)
+        if not correct or not data.get("correct_math") or not data.get("correct_ua"):
+            await message.answer("Десь ви зробили помилку. Перевірте свої відповіді та виправте їх", reply_markup=nav.fix)
         else:
             user_coll = db.users_specs.find_one({"user_id": message.from_user.id})
 
@@ -274,15 +275,39 @@ async def average(message: types.Message):
     user_id = message.from_user.id
     user_spec = db.users_specs.find_one({"user_id": user_id})
     specialization = user_spec["spec_codes"]
-    regions = user_spec["region"]
+    regions = []
+    for item in user_spec["region"]:
+        if item == "Київ":
+            regions.append("КИЇВ")
+        elif item == "АР Крим":
+            pass
+        else:
+            regions.append(item + " область")
     univers = []
     for r in regions:
-        cursor_object = db.univs.find({"region": r})
-        for objection in cursor_object:
-            print(objection)
-            # print(uni)
-    # for u in univers:
-    #     print(u["name"])
+        for spec_item in specialization:
+            find_univ = db.univs.find({"region": r})
+            filter_univ = db.univs.aggregate([{
+                "$project": {
+                    "specs": {
+                        "$filter": {
+                            "input": "$specs",
+                            "as": "item",
+                            "cond": {"$eq": ["$$item", spec_item]}
+                        }
+                    }
+                }
+            }])
+            print(filter_univ)
+            for objection in filter_univ:
+                # await message.answer(f"Назва університету: {objection['name']}\n"
+                #                      f"Регіон: {objection['region']}\n"
+                #                      f"Спеціальність: {spec_item}")
+                await message.answer(objection)
+                print(objection['name'])
+                # specs.append(objection['specs'])
+    # for i in specs[0]:
+    #     print(i)
 
 
 if __name__ == "__main__":
