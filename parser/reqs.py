@@ -97,7 +97,7 @@ def get_full_univs_data(univs):
                 r = requests.post(BASE_SITE + OFFERS_LIST_URL, data={"ids": all_ids}, headers=HEADERS)
                 if r.ok:
                     jdata = r.json()
-                    offers = jdata["offers"]
+                    offers = jdata.get("offers", [])
                     specs = []
                     for offer in offers:
                         contest_subjects = []
@@ -138,9 +138,13 @@ def get_full_univs_data(univs):
                             "stat": stat  # Статистика заяв
                         }
                         specs += [spec]
+                    shortnames = []
+                    for f in shortname.split(", "):
+                        for s in f.split():
+                            shortnames.append(s)
                     u = {
                         "name": name,
-                        "short_name": shortname,
+                        "short_name": shortnames,
                         "code": code,
                         "region": region,
                         "facs": facs,
