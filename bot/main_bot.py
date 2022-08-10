@@ -5,7 +5,7 @@ import pymongo
 from aiogram import Bot, Dispatcher, executor, types
 from aiogram.contrib.fsm_storage.memory import MemoryStorage
 from aiogram.dispatcher import FSMContext
-from aiogram.dispatcher.filters.state import State, StatesGroup
+from states import ExamsBals, SearchUniver
 from dotenv import load_dotenv
 
 import markup as nav
@@ -24,15 +24,6 @@ db = client.vst
 coll = db.specs
 
 
-# State
-class ExamsBals(StatesGroup):
-    ua = State()
-    math = State()
-    history = State()
-    correct_ua = State()
-    correct_math = State()
-
-
 @dp.message_handler(commands="start")
 async def start(message: types.Message):
     await message.reply("Привіт\n"
@@ -48,6 +39,12 @@ async def start(message: types.Message):
 async def check_profession(call: types.CallbackQuery):
     await call.answer()
     await call.message.answer("Ти вже визначився з своєю професією?", reply_markup=nav.check_profession)
+
+
+@dp.callback_query_handler(text="no")
+async def finish_process(call: types.CallbackQuery):
+    await call.answer()
+    await call.message.answer("Гаразд. Роботу завершено")
 
 
 @dp.message_handler(lambda message: message.text == "Так" or message.text == "Ні" or message.text == "Ще ні")
@@ -69,8 +66,7 @@ async def check_profession_step_2(message: types.Message):
 @dp.callback_query_handler(text="спеціальність")
 async def auto_specialization(call: types.CallbackQuery):
     await call.answer()
-    # await call.message.answer("Вибери спеціальність", reply_markup=nav.choose_category)
-    await call.message.answer(call.message.message_id)
+    await call.message.answer("В розробці. Очікуйте в наступних оновленнях")
 
 
 @dp.callback_query_handler(text="код")
@@ -185,7 +181,7 @@ async def get_ua(message: types.Message, state=FSMContext):
     finita_la_comedia = False
 
     try:
-        if int(ua1) == 0 or int(ua1) > 200:
+        if int(ua1) <= 100 or int(ua1) > 200:
             correct_ua = False
         else:
             correct_ua = True
@@ -206,7 +202,7 @@ async def get_math(message: types.Message, state=FSMContext):
     math1 = message.text
     finita_la_comedia = False
     try:
-        if int(math1) == 0 or int(math1) > 200:
+        if int(math1) <= 100 or int(math1) > 200:
             correct_math = False
         else:
             correct_math = True
@@ -270,44 +266,81 @@ async def save(call: types.CallbackQuery):
     await call.message.answer("Налаштування завершено")
 
 
-@dp.message_handler(commands="average_mark")
-async def average(message: types.Message):
-    user_id = message.from_user.id
-    user_spec = db.users_specs.find_one({"user_id": user_id})
-    specialization = user_spec["spec_codes"]
+@dp.callback_query_handler(text="average")
+async def average(call: types.CallbackQuery):
+    await call.answer()
+    user_id = call.from_user.id
+    user_data = db.users_specs.find_one({"user_id": user_id})
+    specialization = user_data["spec_codes"]
     regions = []
-    for item in user_spec["region"]:
+
+    for item in user_data["region"]:
         if item == "Київ":
             regions.append("КИЇВ")
         elif item == "АР Крим":
             pass
         else:
             regions.append(item + " область")
-    univers = []
-    for r in regions:
+
+    for region in regions:
         for spec_item in specialization:
-            find_univ = db.univs.find({"region": r})
-            filter_univ = db.univs.aggregate([{
-                "$project": {
-                    "specs": {
-                        "$filter": {
-                            "input": "$specs",
-                            "as": "item",
-                            "cond": {"$eq": ["$$item", spec_item]}
-                        }
-                    }
-                }
-            }])
-            print(filter_univ)
-            for objection in filter_univ:
-                # await message.answer(f"Назва університету: {objection['name']}\n"
-                #                      f"Регіон: {objection['region']}\n"
-                #                      f"Спеціальність: {spec_item}")
-                await message.answer(objection)
-                print(objection['name'])
-                # specs.append(objection['specs'])
-    # for i in specs[0]:
-    #     print(i)
+            find_univ = db.univs.find({"region": region, "specs": {"$elemMatch": {"spec_code": spec_item}}})
+            for objection in find_univ:
+                for specialization in objection['specs']:
+                    if spec_item == specialization['spec_code']:
+                        for exam_requirement in specialization['contest_subjects']:
+                            if exam_requirement['name'] == 'Українська мова':
+                                ua_koef = exam_requirement['koef']
+                            if exam_requirement['name'] == 'Математика':
+                                math_koef = exam_requirement['koef']
+                            if exam_requirement['name'] == 'Історія України':
+                                history_koef = exam_requirement['koef']
+                        average_enjoyer = int(user_data['UA'])*ua_koef + int(user_data['Math'])*math_koef + int(user_data['History'])*history_koef
+                        try:
+                            await call.message.answer(f"Назва університету: {objection['name']}\n"
+                                                 f"Регіон: {objection['region']}\n"
+                                                 f"Спеціальність: {specialization['spec_name']} {specialization['spec_code']}\n"
+                                                 f"Код закладу: {objection['code']}\n\n"
+                                                 f"<b>Cтатистика закладу</b>\n"
+                                                 f"Загальна кількість місць:{specialization['stat']['statm_all_count']}\n"
+                                                 f"З них бюджет:{specialization['stat']['statm_budget']}\n"
+                                                 f"Подано заяв:{specialization['stat']['statm_admitted']}\n"
+                                                 f"Максимальний бал: {specialization['stat']['mark_max']}\n"
+                                                 f"Cередній бал: {specialization['stat']['mark_avg']}\n"
+                                                 f"Мінімальний бал: {specialization['stat']['mark_min']}\n"
+                                                 f"Ваш середній бал:{average_enjoyer}\n", parse_mode="HTML", disable_notification=True)
+                            await asyncio.sleep(1)
+                        except KeyError:
+                            await call.message.answer(f"Назва університету: {objection['name']}\n"
+                                                 f"Регіон: {objection['region']}\n"
+                                                 f"Спеціальність: {specialization['spec_name']} {specialization['spec_code']}\n"
+                                                 f"Код закладу: {objection['code']}\n\n"
+                                                 f"Заклад не надав статистику\n"
+                                                 f"Ваш середній бал:{average_enjoyer}\n", disable_notification=True)
+                            await asyncio.sleep(1)
+
+
+@dp.message_handler(commands="menu")
+async def menu(message: types.Message):
+    await message.answer("Меню бота, ще буде доповнюватись", reply_markup=nav.mainMenu)
+
+
+@dp.callback_query_handler(text="search", state=None)
+async def search_uni(call: types.CallbackQuery):
+    await call.answer()
+    await call.message.answer("Введіть скорочену назву навчального закладу")
+    await SearchUniver.name.set()
+
+
+@dp.message_handler(state=SearchUniver.name)
+async def find_univer(message: types.Message, state=FSMContext):
+    array1 = message.text.split()
+    univers = db.univs.find({"short_name": {"$in": array1}})
+    for univer in univers:
+        await message.answer("Інформація щодо університету\n"
+                             f"Назва: {univer['name']}\n"
+                             f"Регіон:{univer['region']}")
+    await state.finish()
 
 
 if __name__ == "__main__":

@@ -71,3 +71,7 @@ save.add(types.InlineKeyboardButton(text="Зберегти", callback_data="save
 
 fix = types.InlineKeyboardMarkup()
 fix.add(types.InlineKeyboardButton(text="Виправити помилку", callback_data="The end repeat"))
+
+mainMenu = types.InlineKeyboardMarkup()
+mainMenu.add(types.InlineKeyboardButton(text="Звіт по обраних спеціальностях та регіонах", callback_data="average"),
+             types.InlineKeyboardMarkup(text="Пошук університету", callback_data="search"))
