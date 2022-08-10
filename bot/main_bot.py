@@ -1,27 +1,17 @@
 import asyncio
-import os
 
-import pymongo
-from aiogram import Bot, Dispatcher, executor, types
-from aiogram.contrib.fsm_storage.memory import MemoryStorage
+import pymongo.errors
+from aiogram import executor, types
 from aiogram.dispatcher import FSMContext
+
+from bot.search_machine import search
 from states import ExamsBals, SearchUniver
 from dotenv import load_dotenv
+from config import dp, db
 
 import markup as nav
 
 load_dotenv()
-
-bot = Bot(token=os.getenv('TOKEN'))
-storage = MemoryStorage()
-dp = Dispatcher(bot, storage=storage)
-
-# Preparing for using MongoDB
-username = os.getenv('user_name')
-pwd = os.getenv('pwd')
-client = pymongo.MongoClient(f"mongodb://{username}:{pwd}@130.61.64.244/vst", tls=True, tlsAllowInvalidCertificates=True)
-db = client.vst
-coll = db.specs
 
 
 @dp.message_handler(commands="start")
@@ -84,7 +74,7 @@ async def set_code(message: types.Message):
 
     for value in list_of_spec[1::]:
         # Code checks does specialization exist and add it to list of chosen ones
-        finder = coll.find({'name': {"$regex": value}}, {'_id': 0, "name": 1})
+        finder = db.specs.find({'name': {"$regex": value}}, {'_id': 0, "name": 1})
         c = []
         for f in finder:
             c.append(f)
@@ -95,11 +85,9 @@ async def set_code(message: types.Message):
 
     # Work with database. Firstly we check does user exist in our db.
     # Then we create or update document in collection. It depends on result from previous step
-    res = db.users_specs.find({'user_id': user_id})
-    result = []
-    for r in res:
-        result.append(r)
-    if len(result) < 1:
+    res = db.users_specs.find_one({'user_id': user_id})
+    print(res)
+    if res is None:
         db.users_specs.insert_one({'user_id': user_id,
                                    'spec_codes': spec_codes,
                                    'UA': "",
@@ -107,7 +95,7 @@ async def set_code(message: types.Message):
                                    "History": ""})
         await message.answer("Запис внесено до бази даних")
         await message.answer(f"Вибрано спеціальності: {spec_codes}", reply_markup=nav.cont)
-    elif len(result) == 1:
+    else:
         db.users_specs.update_one({'user_id': user_id}, {'$set': {'spec_codes': spec_codes}})
         await message.answer("Запис в базі даних оновлено")
         await message.answer(f"Вибрано спеціальності: {spec_codes}", reply_markup=nav.cont)
@@ -127,6 +115,7 @@ async def add_or_remove_region(call: types.CallbackQuery):
     user_id = call.from_user.id
     data_split = call.data.split()
     region_name = data_split[1]
+    print(region_name)
     if region_name == "АР":
         region_name = "АР Крим"
 
@@ -148,6 +137,13 @@ async def add_or_remove_region(call: types.CallbackQuery):
                 await call.message.answer(f"Видалено регіон: {region_name} область")
     except KeyError:
         db.users_specs.update_one({'user_id': user_id}, {"$push": {"region": region_name}})
+        if region_name == "Київ" or region_name == "АР Крим":
+            await call.message.answer(f"Додано регіон: {region_name}")
+        else:
+            await call.message.answer(f"Додано регіон: {region_name} область")
+    except TypeError:
+        db.users_specs.insert_one({'user_id': user_id,
+                                   "region": [region_name]})
         if region_name == "Київ" or region_name == "АР Крим":
             await call.message.answer(f"Додано регіон: {region_name}")
         else:
@@ -223,7 +219,6 @@ async def get_history(message: types.Message, state=FSMContext):
     history1 = message.text
     finita_la_comedia = False
 
-    await state.update_data(history=history1)
     try:
         if int(history1) == 0 or int(history1) > 200:
             correct = False
@@ -241,8 +236,8 @@ async def get_history(message: types.Message, state=FSMContext):
 
         if int(data.get("math")) != 0 and int(data.get("math")) <= 200:
             db.users_specs.update_one({"user_id": message.from_user.id}, {"$set": {"Math": int(data.get("math"))}})
-        if int(data.get("history")) != 0 and int(data.get("history")) <= 200:
-            db.users_specs.update_one({"user_id": message.from_user.id}, {"$set": {"History": int(data.get("history"))}})
+        if int(history1) != 0 and int(history1) <= 200:
+            db.users_specs.update_one({"user_id": message.from_user.id}, {"$set": {"History": int(history1)}})
 
         if not correct or not data.get("correct_math") or not data.get("correct_ua"):
             await message.answer("Десь ви зробили помилку. Перевірте свої відповіді та виправте їх", reply_markup=nav.fix)
@@ -271,7 +266,7 @@ async def average(call: types.CallbackQuery):
     await call.answer()
     user_id = call.from_user.id
     user_data = db.users_specs.find_one({"user_id": user_id})
-    specialization = user_data["spec_codes"]
+    spec_codes = user_data["spec_codes"]
     regions = []
 
     for item in user_data["region"]:
@@ -283,12 +278,12 @@ async def average(call: types.CallbackQuery):
             regions.append(item + " область")
 
     for region in regions:
-        for spec_item in specialization:
+        for spec_item in spec_codes:
             find_univ = db.univs.find({"region": region, "specs": {"$elemMatch": {"spec_code": spec_item}}})
             for objection in find_univ:
-                for specialization in objection['specs']:
-                    if spec_item == specialization['spec_code']:
-                        for exam_requirement in specialization['contest_subjects']:
+                for spec in objection['specs']:
+                    if spec_item == spec_codes['spec_code']:
+                        for exam_requirement in spec_codes['contest_subjects']:
                             if exam_requirement['name'] == 'Українська мова':
                                 ua_koef = exam_requirement['koef']
                             if exam_requirement['name'] == 'Математика':
@@ -298,25 +293,25 @@ async def average(call: types.CallbackQuery):
                         average_enjoyer = int(user_data['UA'])*ua_koef + int(user_data['Math'])*math_koef + int(user_data['History'])*history_koef
                         try:
                             await call.message.answer(f"Назва університету: {objection['name']}\n"
-                                                 f"Регіон: {objection['region']}\n"
-                                                 f"Спеціальність: {specialization['spec_name']} {specialization['spec_code']}\n"
-                                                 f"Код закладу: {objection['code']}\n\n"
-                                                 f"<b>Cтатистика закладу</b>\n"
-                                                 f"Загальна кількість місць:{specialization['stat']['statm_all_count']}\n"
-                                                 f"З них бюджет:{specialization['stat']['statm_budget']}\n"
-                                                 f"Подано заяв:{specialization['stat']['statm_admitted']}\n"
-                                                 f"Максимальний бал: {specialization['stat']['mark_max']}\n"
-                                                 f"Cередній бал: {specialization['stat']['mark_avg']}\n"
-                                                 f"Мінімальний бал: {specialization['stat']['mark_min']}\n"
-                                                 f"Ваш середній бал:{average_enjoyer}\n", parse_mode="HTML", disable_notification=True)
+                                                      f"Регіон: {objection['region']}\n"
+                                                      f"Спеціальність: {spec['spec_name']} {spec['spec_code']}\n"
+                                                      f"Код закладу: {objection['code']}\n\n"
+                                                      f"<b>Статистика закладу</b>\n"
+                                                      f"Загальна кількість місць:{spec['stat']['statm_all_count']}\n"
+                                                      f"З них бюджет:{spec['stat']['statm_budget']}\n"
+                                                      f"Подано заяв:{spec['stat']['statm_admitted']}\n"
+                                                      f"Максимальний бал: {spec['stat']['mark_max']}\n"
+                                                      f"Середній бал: {spec['stat']['mark_avg']}\n"
+                                                      f"Мінімальний бал: {spec['stat']['mark_min']}\n"
+                                                      f"Ваш середній бал:{average_enjoyer}\n", parse_mode="HTML", disable_notification=True)
                             await asyncio.sleep(1)
                         except KeyError:
                             await call.message.answer(f"Назва університету: {objection['name']}\n"
-                                                 f"Регіон: {objection['region']}\n"
-                                                 f"Спеціальність: {specialization['spec_name']} {specialization['spec_code']}\n"
-                                                 f"Код закладу: {objection['code']}\n\n"
-                                                 f"Заклад не надав статистику\n"
-                                                 f"Ваш середній бал:{average_enjoyer}\n", disable_notification=True)
+                                                      f"Регіон: {objection['region']}\n"
+                                                      f"Спеціальність: {spec['spec_name']} {spec['spec_code']}\n"
+                                                      f"Код закладу: {objection['code']}\n\n"
+                                                      f"Заклад не надав статистику\n"
+                                                      f"Ваш середній бал:{average_enjoyer}\n", disable_notification=True)
                             await asyncio.sleep(1)
 
 
@@ -335,11 +330,7 @@ async def search_uni(call: types.CallbackQuery):
 @dp.message_handler(state=SearchUniver.name)
 async def find_univer(message: types.Message, state=FSMContext):
     array1 = message.text.split()
-    univers = db.univs.find({"short_name": {"$in": array1}})
-    for univer in univers:
-        await message.answer("Інформація щодо університету\n"
-                             f"Назва: {univer['name']}\n"
-                             f"Регіон:{univer['region']}")
+    await search(message, array1)
     await state.finish()
 
 
