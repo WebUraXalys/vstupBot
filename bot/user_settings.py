@@ -1,6 +1,6 @@
 import asyncio
 
-from bot.config import db
+from config import db
 import markup as nav
 
 

@@ -1,7 +1,7 @@
 from aiogram import types
 from bson import ObjectId
 
-from bot.config import db
+from config import db
 
 guideBTN = [
         types.InlineKeyboardButton(text="Текстовий гайд", url="google.com", callback_data="trusted"),

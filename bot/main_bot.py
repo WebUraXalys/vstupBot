@@ -5,8 +5,8 @@ from aiogram.dispatcher import FSMContext
 from dotenv import load_dotenv
 
 import markup as nav
-from bot.search_machine import search
-from bot.user_settings import change_spec, massive_change_spec, change_region, list_the_regions, average_bal
+from search_machine import search
+from user_settings import change_spec, massive_change_spec, change_region, list_the_regions, average_bal
 from config import dp, db
 from states import ExamsBals, SearchUniver
 
