@@ -1,4 +1,7 @@
 from aiogram import types
+from bson import ObjectId
+
+from bot.config import db
 
 guideBTN = [
         types.InlineKeyboardButton(text="Текстовий гайд", url="google.com", callback_data="trusted"),
@@ -34,6 +37,9 @@ specialization.add(*specBTN)
 
 cont = types.ReplyKeyboardMarkup(resize_keyboard=True)
 cont.add("Продовжити далі")
+
+end = types.ReplyKeyboardMarkup(resize_keyboard=True)
+end.add("Завершити обирати")
 
 
 regions = types.InlineKeyboardMarkup(row_width=2)
@@ -75,3 +81,54 @@ fix.add(types.InlineKeyboardButton(text="Виправити помилку", cal
 mainMenu = types.InlineKeyboardMarkup()
 mainMenu.add(types.InlineKeyboardButton(text="Звіт по обраних спеціальностях та регіонах", callback_data="average"),
              types.InlineKeyboardMarkup(text="Пошук університету", callback_data="search"))
+
+
+# ----------------------------------------------------------------------------------------------------------------------
+# Кнопки для роботи зі спеціальностями
+async def add_buttons():
+    categories = db.categories_spec.find()
+    categoriesMenu = types.InlineKeyboardMarkup()
+    buttons = []
+    for category in categories:
+        name = category['categories_name']
+        category_name = "category " + str(category['_id'])
+        button = types.InlineKeyboardButton(text=name, callback_data=category_name)
+        buttons.append(button)
+    categoriesMenu.add(*buttons)
+    return categoriesMenu
+
+
+async def add_specs(category_id, page):
+    specMenu = types.InlineKeyboardMarkup()
+    category_find = db.categories_spec.find_one({"_id": ObjectId(category_id)})
+    buttons = []
+    number = len(category_find['spec_array'])
+    if number > 23:
+        num_of_codes = int(number/2)
+        if page == "1":
+            for spec in category_find['spec_array'][:num_of_codes]:
+                spec_code = spec
+                finder = db.specs.find_one({'name': {"$regex": spec_code}}, {'_id': 0, "name": 1})
+                spec_name = "spec " + str(spec_code)
+                button = types.InlineKeyboardButton(text=finder['name'], callback_data=spec_name)
+                buttons.append(button)
+            specMenu.row(types.InlineKeyboardButton(text="Наступна сторінка", callback_data=f"category {category_id} 2"))
+        elif page == "2":
+            for spec in category_find['spec_array'][num_of_codes:]:
+                spec_code = spec
+                finder = db.specs.find_one({'name': {"$regex": spec_code}}, {'_id': 0, "name": 1})
+                spec_name = "spec " + str(spec_code)
+                button = types.InlineKeyboardButton(text=finder['name'], callback_data=spec_name)
+                buttons.append(button)
+            specMenu.row(types.InlineKeyboardButton(text="Попередня сторінка", callback_data=f"category {category_id} 1"))
+
+    else:
+        for spec in category_find['spec_array']:
+            spec_code = spec
+            finder = db.specs.find_one({'name': {"$regex": spec_code}}, {'_id': 0, "name": 1})
+            spec_name = "spec " + str(spec_code)
+            button = types.InlineKeyboardButton(text=finder['name'], callback_data=spec_name)
+            buttons.append(button)
+    specMenu.add(*buttons)
+    specMenu.row(types.InlineKeyboardButton(text="Повернутись", callback_data="спеціальність"))
+    return specMenu

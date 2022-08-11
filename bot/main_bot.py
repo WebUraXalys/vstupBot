@@ -1,15 +1,14 @@
 import asyncio
 
-import pymongo.errors
 from aiogram import executor, types
 from aiogram.dispatcher import FSMContext
-
-from bot.search_machine import search
-from states import ExamsBals, SearchUniver
 from dotenv import load_dotenv
-from config import dp, db
 
 import markup as nav
+from bot.search_machine import search
+from bot.user_settings import change_spec, massive_change_spec, change_region, list_the_regions, average_bal
+from config import dp, db
+from states import ExamsBals, SearchUniver
 
 load_dotenv()
 
@@ -56,7 +55,30 @@ async def check_profession_step_2(message: types.Message):
 @dp.callback_query_handler(text="спеціальність")
 async def auto_specialization(call: types.CallbackQuery):
     await call.answer()
-    await call.message.answer("В розробці. Очікуйте в наступних оновленнях")
+    categories_menu = await nav.add_buttons()
+    await call.message.edit_text(text="В розробці. Очікуйте в наступних оновленнях", reply_markup=categories_menu)
+
+
+@dp.callback_query_handler(text_contains="category")
+async def category(call: types.CallbackQuery):
+    await call.answer()
+    data = call.data.split()
+    category_id = data[1]
+    try:
+        page = data[2]
+    except:
+        page = "1"
+    spec_lists = await nav.add_specs(category_id, page)
+    await call.message.edit_text(text="Список спеціальностей", reply_markup=spec_lists)
+
+
+@dp.callback_query_handler(text_contains="spec")
+async def add_or_remove_spec(call: types.CallbackQuery):
+    await call.answer()
+    data = call.data.split()
+    spec_code = data[1]
+    user_id = call.from_user.id
+    await change_spec(call, spec_code)
 
 
 @dp.callback_query_handler(text="код")
@@ -68,40 +90,11 @@ async def specialization(call: types.CallbackQuery):
 @dp.message_handler(commands="setcode")
 async def set_code(message: types.Message):
     # This code adds list of specialization what user have sent
-    spec_codes = []
     list_of_spec = message.text.split()
-    user_id = message.from_user.id
-
-    for value in list_of_spec[1::]:
-        # Code checks does specialization exist and add it to list of chosen ones
-        finder = db.specs.find({'name': {"$regex": value}}, {'_id': 0, "name": 1})
-        c = []
-        for f in finder:
-            c.append(f)
-        if len(c) == 1:
-            spec_codes.append(value)
-        elif len(c) < 1:
-            await message.reply(f"Такої спеціальності нема: {value}")
-
-    # Work with database. Firstly we check does user exist in our db.
-    # Then we create or update document in collection. It depends on result from previous step
-    res = db.users_specs.find_one({'user_id': user_id})
-    print(res)
-    if res is None:
-        db.users_specs.insert_one({'user_id': user_id,
-                                   'spec_codes': spec_codes,
-                                   'UA': "",
-                                   'Math': "",
-                                   "History": ""})
-        await message.answer("Запис внесено до бази даних")
-        await message.answer(f"Вибрано спеціальності: {spec_codes}", reply_markup=nav.cont)
-    else:
-        db.users_specs.update_one({'user_id': user_id}, {'$set': {'spec_codes': spec_codes}})
-        await message.answer("Запис в базі даних оновлено")
-        await message.answer(f"Вибрано спеціальності: {spec_codes}", reply_markup=nav.cont)
+    await massive_change_spec(message, list_of_spec)
 
 
-@dp.message_handler(lambda message: message.text == "Продовжити далі")
+@dp.message_handler(lambda message: message.text == "Продовжити далі" or message.text == "Завершити обирати")
 async def choose_region(message: types.Message):
     await message.answer("З спеціальностями покінчено, час перейти до наступного етапу", reply_markup=types.ReplyKeyboardRemove())
     await asyncio.sleep(1.5)
@@ -112,60 +105,16 @@ async def choose_region(message: types.Message):
 @dp.callback_query_handler(text_contains="region")
 async def add_or_remove_region(call: types.CallbackQuery):
     await call.answer()
-    user_id = call.from_user.id
-    data_split = call.data.split()
-    region_name = data_split[1]
-    print(region_name)
-    if region_name == "АР":
-        region_name = "АР Крим"
+    region_name = call.data.split()[1]
+    await change_region(call, region_name)
 
-    res = db.users_specs.find_one({'user_id': user_id})
-    try:
-        if region_name not in res["region"]:
-            print(region_name)
-            db.users_specs.update_one({'user_id': user_id}, {"$push": {"region": region_name}})
-            if region_name == "Київ" or region_name == "АР Крим":
-                await call.message.answer(f"Додано регіон: {region_name}")
-            else:
-                await call.message.answer(f"Додано регіон: {region_name} область")
-
-        else:
-            db.users_specs.update_one({'user_id': user_id}, {"$pull": {"region": region_name}})
-            if region_name == "Київ" or region_name == "АР Крим":
-                await call.message.answer(f"Видалено регіон: {region_name}")
-            else:
-                await call.message.answer(f"Видалено регіон: {region_name} область")
-    except KeyError:
-        db.users_specs.update_one({'user_id': user_id}, {"$push": {"region": region_name}})
-        if region_name == "Київ" or region_name == "АР Крим":
-            await call.message.answer(f"Додано регіон: {region_name}")
-        else:
-            await call.message.answer(f"Додано регіон: {region_name} область")
-    except TypeError:
-        db.users_specs.insert_one({'user_id': user_id,
-                                   "region": [region_name]})
-        if region_name == "Київ" or region_name == "АР Крим":
-            await call.message.answer(f"Додано регіон: {region_name}")
-        else:
-            await call.message.answer(f"Додано регіон: {region_name} область")
 
 
 @dp.callback_query_handler(text_contains="The end", state=None)
 async def get_exams_result(call: types.CallbackQuery):
     await call.answer()
     if "repeat" not in call.data.split():
-        mess = "Готово. Ви вибрали наступні регіони:\n"
-        regions = db.users_specs.find_one({"user_id": call.from_user.id}, {"_id": 0, "region": 1})
-        region_sort = []
-        for region in regions["region"]:
-            region_sort.append(region)
-        region_sort.sort()
-        for region in region_sort:
-            if region == "АР Крим" or region == "Київ":
-                mess += f"✅{region}\n"
-            else:
-                mess += f"✅{region} область\n"
-        await call.message.answer(mess)
+        await list_the_regions(call)
     await call.message.answer("Тепер нам потрібно дізнатись ваші результати НМТ, щоб вирахувати середній бал для вибраної спеціальності.")
     await call.message.answer("Введіть бал з української мови")
     await ExamsBals.ua.set()
@@ -266,53 +215,7 @@ async def average(call: types.CallbackQuery):
     await call.answer()
     user_id = call.from_user.id
     user_data = db.users_specs.find_one({"user_id": user_id})
-    spec_codes = user_data["spec_codes"]
-    regions = []
-
-    for item in user_data["region"]:
-        if item == "Київ":
-            regions.append("КИЇВ")
-        elif item == "АР Крим":
-            pass
-        else:
-            regions.append(item + " область")
-
-    for region in regions:
-        for spec_item in spec_codes:
-            find_univ = db.univs.find({"region": region, "specs": {"$elemMatch": {"spec_code": spec_item}}})
-            for objection in find_univ:
-                for spec in objection['specs']:
-                    if spec_item == spec_codes['spec_code']:
-                        for exam_requirement in spec_codes['contest_subjects']:
-                            if exam_requirement['name'] == 'Українська мова':
-                                ua_koef = exam_requirement['koef']
-                            if exam_requirement['name'] == 'Математика':
-                                math_koef = exam_requirement['koef']
-                            if exam_requirement['name'] == 'Історія України':
-                                history_koef = exam_requirement['koef']
-                        average_enjoyer = int(user_data['UA'])*ua_koef + int(user_data['Math'])*math_koef + int(user_data['History'])*history_koef
-                        try:
-                            await call.message.answer(f"Назва університету: {objection['name']}\n"
-                                                      f"Регіон: {objection['region']}\n"
-                                                      f"Спеціальність: {spec['spec_name']} {spec['spec_code']}\n"
-                                                      f"Код закладу: {objection['code']}\n\n"
-                                                      f"<b>Статистика закладу</b>\n"
-                                                      f"Загальна кількість місць:{spec['stat']['statm_all_count']}\n"
-                                                      f"З них бюджет:{spec['stat']['statm_budget']}\n"
-                                                      f"Подано заяв:{spec['stat']['statm_admitted']}\n"
-                                                      f"Максимальний бал: {spec['stat']['mark_max']}\n"
-                                                      f"Середній бал: {spec['stat']['mark_avg']}\n"
-                                                      f"Мінімальний бал: {spec['stat']['mark_min']}\n"
-                                                      f"Ваш середній бал:{average_enjoyer}\n", parse_mode="HTML", disable_notification=True)
-                            await asyncio.sleep(1)
-                        except KeyError:
-                            await call.message.answer(f"Назва університету: {objection['name']}\n"
-                                                      f"Регіон: {objection['region']}\n"
-                                                      f"Спеціальність: {spec['spec_name']} {spec['spec_code']}\n"
-                                                      f"Код закладу: {objection['code']}\n\n"
-                                                      f"Заклад не надав статистику\n"
-                                                      f"Ваш середній бал:{average_enjoyer}\n", disable_notification=True)
-                            await asyncio.sleep(1)
+    await average_bal(call, user_data)
 
 
 @dp.message_handler(commands="menu")
