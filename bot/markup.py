@@ -132,3 +132,6 @@ async def add_specs(category_id, page):
     specMenu.add(*buttons)
     specMenu.row(types.InlineKeyboardButton(text="Повернутись", callback_data="спеціальність"))
     return specMenu
+
+
+univerMarkup = types.InlineKeyboardMarkup()

@@ -207,7 +207,7 @@ async def get_history(message: types.Message, state=FSMContext):
 @dp.callback_query_handler(text="save")
 async def save(call: types.CallbackQuery):
     await call.answer()
-    await call.message.answer("Налаштування завершено")
+    await call.message.answer("Налаштування завершено. Можливості бота представлено в команді /menu")
 
 
 @dp.callback_query_handler(text="average")

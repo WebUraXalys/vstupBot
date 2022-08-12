@@ -16,7 +16,7 @@ async def search(message, array_1):
 
     list_of_univs.sort(key=lambda item: item.get("percents"))
     for elem in list_of_univs:
-        if elem['percents'] >= 0.35:
+        if elem['percents'] >= 0.45:
             await message.answer("Інформація щодо університету\n"
                                  f"Назва: {elem['univer']['name']}\n"
                                  f"Регіон: {elem['univer']['region']}")
