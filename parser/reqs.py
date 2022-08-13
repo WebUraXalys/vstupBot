@@ -64,6 +64,10 @@ def get_full_univs_data(univs):
                 facs = u["facultets"]
                 region = u["region_name"]
                 shortname = u["university_short_name"]
+                shortnames = []
+                for f in shortname.split(", "):
+                    for s in f.split():
+                        shortnames.append(s)
                 rs = []
                 for ed in educators:
                     rs += [
@@ -138,10 +142,6 @@ def get_full_univs_data(univs):
                             "stat": stat  # Статистика заяв
                         }
                         specs += [spec]
-                    shortnames = []
-                    for f in shortname.split(", "):
-                        for s in f.split():
-                            shortnames.append(s)
                     u = {
                         "name": name,
                         "short_name": shortnames,
