@@ -10,6 +10,7 @@ UNIV_API_URL = "api/universities/"
 UNIV_DATA_API_URL = "api/university/"
 OFFERS_UNIVS_URL = "offers-universities/"
 OFFERS_LIST_URL = "offers-list/"
+OFFERS_REQUESTS_URL = "offer-requests/"
 HEADERS = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:103.0) Gecko/20100101 Firefox/103.0",
     "Accept": "*/*",

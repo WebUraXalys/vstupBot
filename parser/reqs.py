@@ -1,6 +1,6 @@
 import grequests
 import requests
-from config import BASE_SITE, OFFERS_URL, HEADERS, UNIV_API_URL, REGISTRY_SITE, UNIV_DATA_API_URL, OFFERS_UNIVS_URL, OFFERS_LIST_URL
+from config import BASE_SITE, OFFERS_URL, HEADERS, UNIV_API_URL, REGISTRY_SITE, UNIV_DATA_API_URL, OFFERS_UNIVS_URL, OFFERS_LIST_URL, OFFERS_REQUESTS_URL
 from console import console, Table, Confirm, Progress
 from exceptions import Not200Exception
 from collections import OrderedDict
@@ -128,6 +128,13 @@ def get_full_univs_data(univs):
                             stat = {
                                 "unspecified": True
                             }
+                        usid = offer.get("usid", "Не вказано")
+                        rq = requests.post(BASE_SITE + OFFERS_REQUESTS_URL, data={"id": usid, "last": 0}, headers=HEADERS)
+                        if rq.ok:
+                            ja = rq.json()
+                            rqs = ja.get("requests", "Не вказно")
+                        else:
+                            rqs = "Не вказано"
                         spec = {
                             "spec_code": offer.get("ssc", "Не вказано"),  # Код спеціальності
                             "spec_name": offer.get("ssn", "Не вказано"),  # Назва спеціальності
@@ -139,7 +146,8 @@ def get_full_univs_data(univs):
                             "max_gov_order_count": offer.get("ox", int(offer.get("ol", "0")) - int(offer.get("oc", offer.get("ol", "0")))),  # Максимальний обсяг держзамовлення
                             "contract_count": offer.get("oc", "Не вказано"),  # Обсяг на контракт
                             "contest_subjects": contest_subjects,  # Конкурсні предмети
-                            "stat": stat  # Статистика заяв
+                            "stat": stat,  # Статистика заяв
+                            "rqs": rqs  # Список вступників
                         }
                         specs += [spec]
                     u = {
