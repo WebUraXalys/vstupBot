@@ -135,7 +135,7 @@ def get_full_univs_data(univs):
                             rqs = ja.get("requests", "Не вказно")
                         else:
                             rqs = "Не вказано"
-                        spec = {
+                        spec = {  # Спеціальність
                             "spec_code": offer.get("ssc", "Не вказано"),  # Код спеціальності
                             "spec_name": offer.get("ssn", "Не вказано"),  # Назва спеціальності
                             "fac_name": offer.get("ufn", "Не вказано"),  # Факультет
@@ -151,12 +151,12 @@ def get_full_univs_data(univs):
                         }
                         specs += [spec]
                     u = {
-                        "name": name,
-                        "short_name": shortnames,
-                        "code": code,
-                        "region": region,
-                        "facs": facs,
-                        "specs": specs
+                        "name": name,  # Назва університету
+                        "short_name": shortnames,  # Скорочення назви
+                        "code": code,  # Код університету
+                        "region": region,  # Область
+                        "facs": facs,  # Список факультетів
+                        "specs": specs  # Список спеціальностей
                     }
                     ulist += [u]
             prog.update(task_find_facs, advance=1)
