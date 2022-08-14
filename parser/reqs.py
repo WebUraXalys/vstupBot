@@ -135,16 +135,17 @@ def get_full_univs_data(univs):
                             reqs = []
                             rqs = ja.get("requests", "Не вказно")
                             for i in rqs:
-                                ii = {
-                                    "pib": i.get("fio", "Не вказано"),  # ПІБ
-                                    "priority": i.get("p", "Не вказано"),  # Пріоритет
-                                    "rss": i.get("rss", "Не вказано"),  # Дані про оцінки
-                                    "kv": i.get("kv", "Не вказано"),  # Невідомо
-                                    "n": i.get("n", "Не вказано")  # n
-                                }
-                                reqs += [ii]
+                                if isinstance(i, dict):
+                                    ii = {
+                                        "pib": i.get("fio", "Не вказано"),  # ПІБ
+                                        "priority": i.get("p", "Не вказано"),  # Пріоритет
+                                        "rss": i.get("rss", "Не вказано"),  # Дані про оцінки
+                                        "kv": i.get("kv", "Не вказано"),  # Невідомо
+                                        "n": i.get("n", "Не вказано")  # n
+                                    }
+                                    reqs += [ii]
                         else:
-                            rqs = "Не вказано"
+                            reqs = "Не вказано"
                         spec = {  # Спеціальність
                             "spec_code": offer.get("ssc", "Не вказано"),  # Код спеціальності
                             "spec_name": offer.get("ssn", "Не вказано"),  # Назва спеціальності
