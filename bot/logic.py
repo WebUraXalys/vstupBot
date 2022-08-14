@@ -85,4 +85,5 @@ async def user_position(message, user):
                                                  f"З них державних: {spec['max_gov_order_count']}\n\n"
                                                  f"Подано заявок: {spec['stat']['statm_all_count']}\n"
                                                  f"З них на бюджет: {spec['stat']['statm_budget']}\n"
-                                                 f"Ваше місце в списку: {human['n']}")
+                                                 f"Ваше місце в списку: {human['n']}"
+                                                 f"ПІБ (На випадок, якщо буде однофамілець): {full_name}")
