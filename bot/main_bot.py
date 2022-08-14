@@ -83,13 +83,14 @@ async def add_or_remove_spec(call: types.CallbackQuery):
 @dp.callback_query_handler(text="код", state=None)
 async def specialization(call: types.CallbackQuery):
     await call.answer()
-    await call.message.answer("Через пробіл перечисли коди спеціальностей.\n Приклад: 011 121 125 123", reply_markup=types.ReplyKeyboardRemove())
+    await call.message.answer("Через кому перечисли коди спеціальностей. Обов'язково залишайте пробіл після розділового знаку\n\n"
+                              "Приклад: 011, 121, 125, 123", reply_markup=types.ReplyKeyboardRemove())
     await SpecCodes.codes.set()
 
 
 @dp.message_handler(state=SpecCodes.codes)
 async def set_code(message: types.Message, state=FSMContext):
-    list_of_spec = message.text.split()
+    list_of_spec = message.text.split(", ")
     await massive_change_spec(message, list_of_spec)
     await state.finish()
 
