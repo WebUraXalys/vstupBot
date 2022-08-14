@@ -1,7 +1,6 @@
 from aiogram.dispatcher.filters.state import State, StatesGroup
 
 
-# State
 class ExamsBals(StatesGroup):
     ua = State()
     math = State()
@@ -16,3 +15,7 @@ class SearchUniver(StatesGroup):
 
 class FirstName(StatesGroup):
     first_name = State()
+
+
+class SpecCodes(StatesGroup):
+    codes = State()

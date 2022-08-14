@@ -6,7 +6,7 @@ from aiogram.dispatcher import FSMContext
 import markup as nav
 from config import dp, db
 from search_machine import search
-from states import ExamsBals, SearchUniver, FirstName
+from states import ExamsBals, SearchUniver, FirstName, SpecCodes
 from logic import average_bal, user_position, list_the_regions
 from user_settings import change_spec, massive_change_spec, change_region, ap_univer, set_fn
 
@@ -80,17 +80,18 @@ async def add_or_remove_spec(call: types.CallbackQuery):
     await change_spec(call, spec_code)
 
 
-@dp.callback_query_handler(text="код")
+@dp.callback_query_handler(text="код", state=None)
 async def specialization(call: types.CallbackQuery):
     await call.answer()
-    await call.message.answer("Пропиши команду /setcode, а тоді через пробіл перечисли номери спеціальностей.\n Приклад: /setcode 011 121 125 123", reply_markup=types.ReplyKeyboardRemove())
+    await call.message.answer("Через пробіл перечисли коди спеціальностей.\n Приклад: 011 121 125 123", reply_markup=types.ReplyKeyboardRemove())
+    await SpecCodes.codes.set()
 
 
-@dp.message_handler(commands="setcode")
-async def set_code(message: types.Message):
-    # This code adds list of specialization what user have sent
+@dp.message_handler(state=SpecCodes.codes)
+async def set_code(message: types.Message, state=FSMContext):
     list_of_spec = message.text.split()
     await massive_change_spec(message, list_of_spec)
+    await state.finish()
 
 
 @dp.message_handler(lambda message: message.text == "Продовжити далі" or message.text == "Завершити обирати")

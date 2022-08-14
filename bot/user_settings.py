@@ -30,7 +30,7 @@ async def massive_change_spec(message, list_of_spec):
     user_id = message.from_user.id
     spec_codes = []
 
-    for value in list_of_spec[1::]:
+    for value in list_of_spec:
         # Code checks does specialization exist and add it to list of chosen ones
         finder = list(db.specs.find({'name': {"$regex": value}}, {'_id': 0, "name": 1}))
         if len(finder) >= 1:

@@ -76,7 +76,7 @@ async def user_position(message, user):
             for spec in univer['specs']:
                 if spec['spec_code'] in user['spec_codes']:
                     for human in spec['rqs']:
-                        full_name = human['fio']
+                        full_name = human['pib']
                         if user['first_name'] in full_name.split():
                             await message.answer(f"Університет: {univer['name']}\n"
                                                  f"Факультет: {spec['fac_name']}\n"
