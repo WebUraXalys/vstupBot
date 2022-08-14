@@ -132,7 +132,17 @@ def get_full_univs_data(univs):
                         rq = requests.post(BASE_SITE + OFFERS_REQUESTS_URL, data={"id": usid, "last": 0}, headers=HEADERS)
                         if rq.ok:
                             ja = rq.json()
+                            reqs = []
                             rqs = ja.get("requests", "Не вказно")
+                            for i in rqs:
+                                ii = {
+                                    "pib": i.get("fio", "Не вказано"),  # ПІБ
+                                    "priority": i.get("p", "Не вказано"),  # Пріоритет
+                                    "rss": i.get("rss", "Не вказано"),  # Дані про оцінки
+                                    "kv": i.get("kv", "Не вказано"),  # Невідомо
+                                    "n": i.get("n", "Не вказано")  # n
+                                }
+                                reqs += [ii]
                         else:
                             rqs = "Не вказано"
                         spec = {  # Спеціальність
@@ -147,7 +157,7 @@ def get_full_univs_data(univs):
                             "contract_count": offer.get("oc", "Не вказано"),  # Обсяг на контракт
                             "contest_subjects": contest_subjects,  # Конкурсні предмети
                             "stat": stat,  # Статистика заяв
-                            "rqs": rqs  # Список вступників
+                            "rqs": reqs  # Список вступників
                         }
                         specs += [spec]
                     u = {
