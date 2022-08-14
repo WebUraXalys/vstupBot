@@ -12,3 +12,7 @@ class ExamsBals(StatesGroup):
 
 class SearchUniver(StatesGroup):
     name = State()
+
+
+class FirstName(StatesGroup):
+    first_name = State()

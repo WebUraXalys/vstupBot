@@ -3,28 +3,22 @@ from bson import ObjectId
 
 from config import db
 
-guideBTN = [
-        types.InlineKeyboardButton(text="Текстовий гайд", url="google.com", callback_data="trusted"),
-        types.InlineKeyboardButton(text="Відео гайд", url="youtube.com", callback_data="trusted"),
-    ]
 guideMenu = types.InlineKeyboardMarkup(row_width=2)
-guideMenu.add(*guideBTN)
+guideMenu.add(types.InlineKeyboardButton(text="Текстовий гайд", url="google.com", callback_data="trusted"),
+              types.InlineKeyboardButton(text="Відео гайд", url="youtube.com", callback_data="trusted"))
 
 
-continueBTN = [
-        types.InlineKeyboardButton(text="Так", callback_data="yes"),
-        types.InlineKeyboardButton(text="Ні", callback_data="no"),
-    ]
 continueMenu = types.InlineKeyboardMarkup(row_width=2)
-continueMenu.add(*continueBTN)
+continueMenu.add(types.InlineKeyboardButton(text="Так", callback_data="yes"),
+                 types.InlineKeyboardButton(text="Ні", callback_data="no"))
 
 
-check_profession = types.ReplyKeyboardMarkup(resize_keyboard=True)
+check_profession = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
 buttons = ["Так", "Ні"]
 check_profession.add(*buttons)
 
 
-check_profession_step_2 = types.ReplyKeyboardMarkup(resize_keyboard=True)
+check_profession_step_2 = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
 check = ["Так", "Ще ні"]
 check_profession_step_2.add(*check)
 
@@ -35,42 +29,26 @@ specBTN = [types.InlineKeyboardButton(text="Ввести код", callback_data=
 specialization.add(*specBTN)
 
 
-cont = types.ReplyKeyboardMarkup(resize_keyboard=True)
+cont = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
 cont.add("Продовжити далі")
 
-end = types.ReplyKeyboardMarkup(resize_keyboard=True)
+end = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
 end.add("Завершити обирати")
 
 
-regions = types.InlineKeyboardMarkup(row_width=2)
-regionBTN = [types.InlineKeyboardButton(text="АР Крим", callback_data="region АР Крим"),
-             types.InlineKeyboardButton(text="Вінницька", callback_data="region Вінницька"),
-             types.InlineKeyboardButton(text="Волинська", callback_data="region Волинська"),
-             types.InlineKeyboardButton(text="Дніпропетровська", callback_data="region Дніпропетровська"),
-             types.InlineKeyboardButton(text="Донецька", callback_data="region Донецька"),
-             types.InlineKeyboardButton(text="Житомирська", callback_data="region Житомирська"),
-             types.InlineKeyboardButton(text="Закарпатська", callback_data="region Закарпатська"),
-             types.InlineKeyboardButton(text="Івано-Франківська", callback_data="region Івано-Франківська"),
-             types.InlineKeyboardButton(text="Київська", callback_data="region Київська"),
-             types.InlineKeyboardButton(text="Кіровоградська", callback_data="region Кіровоградська"),
-             types.InlineKeyboardButton(text="Луганська", callback_data="region Луганська"),
-             types.InlineKeyboardButton(text="Львівська", callback_data="region Львівська"),
-             types.InlineKeyboardButton(text="Миколаївська", callback_data="region Миколаївська"),
-             types.InlineKeyboardButton(text="Одеська", callback_data="region Одеська"),
-             types.InlineKeyboardButton(text="Полтавська", callback_data="region Полтавська"),
-             types.InlineKeyboardButton(text="Рівненська", callback_data="region Рівненська"),
-             types.InlineKeyboardButton(text="Сумська", callback_data="region Сумська"),
-             types.InlineKeyboardButton(text="Тернопільська", callback_data="region Тернопільська"),
-             types.InlineKeyboardButton(text="Харківська", callback_data="region Харківська"),
-             types.InlineKeyboardButton(text="Херсонська", callback_data="region Херсонська"),
-             types.InlineKeyboardButton(text="Хмельницька", callback_data="region Хмельницька"),
-             types.InlineKeyboardButton(text="Черкаська", callback_data="region Черкаська"),
-             types.InlineKeyboardButton(text="Чернівецька", callback_data="region Чернівецька"),
-             types.InlineKeyboardButton(text="Чернігівська", callback_data="region Чернігівська"),
-             types.InlineKeyboardButton(text="Київ", callback_data="region Київ"),
-             types.InlineKeyboardButton(text="Завершити обирати регіон", callback_data="The end"),
-             ]
-regions.add(*regionBTN)
+async def regions_buttons(callback):
+    regions = db.regions.find()
+    regions_markup = types.InlineKeyboardMarkup(row_width=2)
+    buttons = []
+    for region in regions:
+        name = region['name']
+        callback_data = "region " + region['name']
+        button = types.InlineKeyboardButton(text=name, callback_data=callback_data)
+        buttons.append(button)
+    buttons.append(types.InlineKeyboardButton(text="Завершити обирати", callback_data=callback))
+    regions_markup.add(*buttons)
+    return regions_markup
+
 
 save = types.InlineKeyboardMarkup()
 save.add(types.InlineKeyboardButton(text="Зберегти", callback_data="save"), types.InlineKeyboardButton(text="Виправити помилку", callback_data="The end repeat"))
@@ -78,9 +56,16 @@ save.add(types.InlineKeyboardButton(text="Зберегти", callback_data="save
 fix = types.InlineKeyboardMarkup()
 fix.add(types.InlineKeyboardButton(text="Виправити помилку", callback_data="The end repeat"))
 
-mainMenu = types.InlineKeyboardMarkup()
-mainMenu.add(types.InlineKeyboardButton(text="Звіт по обраних спеціальностях та регіонах", callback_data="average"),
-             types.InlineKeyboardMarkup(text="Пошук університету", callback_data="search"))
+
+mainMenu = types.ReplyKeyboardMarkup(row_width=2, resize_keyboard=True, one_time_keyboard=True)
+mainMenu.add("Змінити дані", "Пошук університету", "Переглянути мої спеціальності")
+mainMenu.row("Місце в рейтингу")
+
+change_menu = types.InlineKeyboardMarkup(row_width=2)
+change_menu.add(types.InlineKeyboardButton(text="Спеціальність", callback_data="спеціальність"),
+                types.InlineKeyboardButton(text="Регіон", callback_data="change region"),
+                types.InlineKeyboardButton(text="Бали", callback_data="The end repeat"),
+                types.InlineKeyboardButton(text="Прізвище", callback_data="first_name"))
 
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -95,6 +80,7 @@ async def add_buttons():
         button = types.InlineKeyboardButton(text=name, callback_data=category_name)
         buttons.append(button)
     categoriesMenu.add(*buttons)
+    categoriesMenu.row(types.InlineKeyboardButton(text="Зберегти спеціальності", callback_data="continue"))
     return categoriesMenu
 
 
@@ -134,4 +120,7 @@ async def add_specs(category_id, page):
     return specMenu
 
 
-univerMarkup = types.InlineKeyboardMarkup()
+async def univer(elem):
+    navigation = types.InlineKeyboardMarkup()
+    navigation.add(types.InlineKeyboardButton(text="Додати в обрані", callback_data=f"append {elem['code']}"))
+    return navigation
