@@ -139,7 +139,7 @@ async def get_exams_result(call: types.CallbackQuery):
     if "repeat" not in call.data.split():
         await list_the_regions(call)
     await call.message.answer("Тепер нам потрібно дізнатись ваші результати НМТ, щоб вирахувати середній бал для вибраної спеціальності.")
-    await call.message.answer("Введіть бал з української мови")
+    await call.message.answer("Введіть бал з української мови у 200-бальній шкалі")
     await ExamsBals.ua.set()
 
 
@@ -159,7 +159,7 @@ async def get_ua(message: types.Message, state=FSMContext):
         finita_la_comedia = True
     if not finita_la_comedia and correct_ua:
         await state.update_data(ua=ua1, correct_ua=correct_ua)
-        await message.answer("Введіть бал з математики")
+        await message.answer("Введіть бал з математики у 200-бальній шкалі")
         await ExamsBals.next()
 
 
@@ -180,7 +180,7 @@ async def get_math(message: types.Message, state=FSMContext):
     if not finita_la_comedia and correct_math:
         await state.update_data(math=math1, correct_math=correct_math)
 
-        await message.answer("Введіть бал з історії")
+        await message.answer("Введіть бал з історії у 200-бальній шкалі")
         await ExamsBals.next()
 
 
