@@ -53,9 +53,6 @@ async def regions_buttons(callback):
 save = types.InlineKeyboardMarkup()
 save.add(types.InlineKeyboardButton(text="Зберегти", callback_data="save"), types.InlineKeyboardButton(text="Виправити помилку", callback_data="The end repeat"))
 
-fix = types.InlineKeyboardMarkup()
-fix.add(types.InlineKeyboardButton(text="Виправити помилку", callback_data="The end repeat"))
-
 
 mainMenu = types.ReplyKeyboardMarkup(row_width=2, resize_keyboard=True, one_time_keyboard=True)
 mainMenu.add("Змінити дані", "Пошук університету", "Переглянути мої спеціальності")
@@ -80,7 +77,7 @@ async def add_buttons():
         button = types.InlineKeyboardButton(text=name, callback_data=category_name)
         buttons.append(button)
     categoriesMenu.add(*buttons)
-    categoriesMenu.row(types.InlineKeyboardButton(text="Зберегти спеціальності", callback_data="continue"))
+    categoriesMenu.row(types.InlineKeyboardButton(text="Зберегти спеціальності", callback_data="change reg"))
     return categoriesMenu
 
 

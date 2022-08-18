@@ -8,9 +8,9 @@ async def change_spec(call, spec_code):
     if user is None:
         db.users_specs.insert_one({'user_id': user_id,
                                    'spec_codes': [spec_code],
-                                   'UA': "",
-                                   'Math': "",
-                                   "History": ""})
+                                   "marks": {'UA': "",
+                                             'Math': "",
+                                             "History": ""}})
         await call.message.answer("Запис внесено до бази даних")
         await call.message.answer(f"Вибрано спеціальність: {spec_code}")
     else:
@@ -44,9 +44,9 @@ async def massive_change_spec(message, list_of_spec):
     if res is None:
         db.users_specs.insert_one({'user_id': user_id,
                                    'spec_codes': spec_codes,
-                                   'UA': "",
-                                   'Math': "",
-                                   "History": ""})
+                                   "marks": {'UA': "",
+                                             'Math': "",
+                                             "History": ""}})
         await message.answer("Запис внесено до бази даних")
         await message.answer(f"Вибрано спеціальності: {spec_codes}", reply_markup=nav.cont)
     else:
@@ -61,7 +61,6 @@ async def change_region(call, region_name):
     res = db.users_specs.find_one({'user_id': user_id})
     try:
         if region_name not in res["region"]:
-            print(region_name)
             db.users_specs.update_one({'user_id': user_id}, {"$push": {"region": region_name}})
             if region_name == "Київ":
                 await call.message.answer(f"Додано регіон: {region_name}")
