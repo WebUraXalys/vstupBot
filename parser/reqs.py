@@ -131,7 +131,10 @@ def get_full_univs_data(univs):
                         usid = offer.get("usid", "Не вказано")
                         rq = requests.post(BASE_SITE + OFFERS_REQUESTS_URL, data={"id": usid, "last": 0}, headers=HEADERS)
                         if rq.ok:
-                            ja = rq.json()
+                            try:
+                                ja = rq.json()
+                            except:
+                                ja = None
                             reqs = []
                             rqs = ja.get("requests", "Не вказно")
                             for i in rqs:
