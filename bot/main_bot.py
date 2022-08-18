@@ -67,7 +67,7 @@ async def category(call: types.CallbackQuery):
     category_id = data[1]
     try:
         page = data[2]
-    except KeyError:
+    except IndexError:
         page = "1"
     spec_lists = await nav.add_specs(category_id, page)
     await call.message.edit_text(text="Оберіть спеціальність з списку. Щоб скасувати вибір, нажміть на кнопку спеціальності ще раз", reply_markup=spec_lists)
