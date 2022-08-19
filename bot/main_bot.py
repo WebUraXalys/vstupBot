@@ -6,8 +6,8 @@ from aiogram.dispatcher import FSMContext
 import markup as nav
 from config import dp, db
 from search_machine import search
-from states import ExamsBals, SearchUniver, FirstName, SpecCodes
 from logic import average_bal, user_position, list_the_regions
+from states import ExamsMarks, SearchUniver, FirstName, SpecCodes, StartProcess
 from user_settings import change_spec, massive_change_spec, change_region, ap_univer, set_fn
 
 load_dotenv()
@@ -24,9 +24,10 @@ async def start(message: types.Message):
     await message.answer("Продовжуємо?", reply_markup=nav.continueMenu)
 
 
-@dp.callback_query_handler(text="yes")
+@dp.callback_query_handler(text="yes",  state=None)
 async def check_profession(call: types.CallbackQuery):
     await call.answer()
+    await StartProcess.agreement.set()
     await call.message.answer("Ти вже визначився з своєю професією?", reply_markup=nav.check_profession)
 
 
@@ -36,8 +37,8 @@ async def finish_process(call: types.CallbackQuery):
     await call.message.answer("Гаразд. Роботу завершено")
 
 
-@dp.message_handler(lambda message: message.text == "Так" or message.text == "Ні" or message.text == "Ще ні")
-async def check_profession_step_2(message: types.Message):
+@dp.message_handler(state=StartProcess.agreement)
+async def check_profession_step_2(message: types.Message, state=FSMContext):
     if message.text == "Ні":
         await message.answer(
             'Якщо ти ще не впевнений, рекомендуємо тобі пройти <a href="https://cdn.kname.edu.ua/index.php/abituriientu/test-z-proforiientatsii">цей тест</a>. Коли завершиш, повернись сюди й ми продовжимо роботу ',
@@ -48,9 +49,14 @@ async def check_profession_step_2(message: types.Message):
     elif message.text == "Так":
         await message.answer(
             "Тепер потрібно написати код або коди спеціальностей чи вибрати із списку", reply_markup=nav.specialization)
-    else:
+        await state.finish()
+    elif message.text == "Ще ні":
         categories_menu = await nav.add_buttons()
         await message.answer("Порадься з батьками, вчителем чи з кимось, чия думка для тебе є авторитетною. Однак ти можеш переглянути список категорій й вибрати ту, яка тобі найбільше сподобається", reply_markup=categories_menu)
+    elif message.text == "Завершити":
+        await state.finish()
+        await message.answer("Роботу завершено")
+    else: await message.answer("Я розумію тільки окремі фрази. Будь ласка, використовуйте кнопки з готовими словами")
 
 
 @dp.callback_query_handler(text="спеціальність")
@@ -140,10 +146,10 @@ async def get_exams_result(call: types.CallbackQuery):
         await list_the_regions(call)
     await call.message.answer("Тепер нам потрібно дізнатись ваші результати НМТ, щоб вирахувати середній бал для вибраної спеціальності.")
     await call.message.answer("Введіть бал з української мови у 200-бальній шкалі")
-    await ExamsBals.ua.set()
+    await ExamsMarks.ua.set()
 
 
-@dp.message_handler(state=ExamsBals.ua)
+@dp.message_handler(state=ExamsMarks.ua)
 async def get_ua(message: types.Message, state=FSMContext):
     ua1 = message.text
     finita_la_comedia = False
@@ -160,10 +166,10 @@ async def get_ua(message: types.Message, state=FSMContext):
     if not finita_la_comedia and correct_ua:
         await state.update_data(ua=ua1, correct_ua=correct_ua)
         await message.answer("Введіть бал з математики у 200-бальній шкалі")
-        await ExamsBals.next()
+        await ExamsMarks.next()
 
 
-@dp.message_handler(state=ExamsBals.math)
+@dp.message_handler(state=ExamsMarks.math)
 async def get_math(message: types.Message, state=FSMContext):
     math1 = message.text
     finita_la_comedia = False
@@ -181,10 +187,10 @@ async def get_math(message: types.Message, state=FSMContext):
         await state.update_data(math=math1, correct_math=correct_math)
 
         await message.answer("Введіть бал з історії у 200-бальній шкалі")
-        await ExamsBals.next()
+        await ExamsMarks.next()
 
 
-@dp.message_handler(state=ExamsBals.history)
+@dp.message_handler(state=ExamsMarks.history)
 async def get_history(message: types.Message, state=FSMContext):
     mark_history = int(message.text)
     finita_la_comedia = False

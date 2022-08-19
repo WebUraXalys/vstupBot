@@ -1,7 +1,11 @@
 from aiogram.dispatcher.filters.state import State, StatesGroup
 
 
-class ExamsBals(StatesGroup):
+class StartProcess(StatesGroup):
+    agreement = State()
+
+
+class ExamsMarks(StatesGroup):
     ua = State()
     math = State()
     history = State()

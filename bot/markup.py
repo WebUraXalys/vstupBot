@@ -13,13 +13,13 @@ continueMenu.add(types.InlineKeyboardButton(text="Так", callback_data="yes"),
                  types.InlineKeyboardButton(text="Ні", callback_data="no"))
 
 
-check_profession = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
-buttons = ["Так", "Ні"]
+check_profession = types.ReplyKeyboardMarkup(row_width=2, resize_keyboard=True,)
+buttons = ["Так", "Ні", "Завершити"]
 check_profession.add(*buttons)
 
 
-check_profession_step_2 = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
-check = ["Так", "Ще ні"]
+check_profession_step_2 = types.ReplyKeyboardMarkup(row_width=2, resize_keyboard=True, one_time_keyboard=True)
+check = ["Так", "Ще ні", "Завершити"]
 check_profession_step_2.add(*check)
 
 
