@@ -99,6 +99,7 @@ async def ap_univer(call, code):
 
     except KeyError:
         db.users_specs.update_one({"user_id": user_id}, {"$push": {"universities": code}})
+    await call.message.answer(f"Додано університет під кодом {code}")
 
 
 async def set_fn(message):

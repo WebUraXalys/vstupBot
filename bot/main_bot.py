@@ -262,7 +262,7 @@ async def save(call: types.CallbackQuery):
     await call.message.answer("Налаштування завершено. Основні можливості бота представлено в команді /menu")
 
 
-@dp.message_handler(lambda message: message.text == "Переглянути інформацію щодо спеціальностей")
+@dp.message_handler(lambda message: message.text == "Переглянути мої спеціальності")
 async def average(message: types.Message):
     start_time = time.time()
     user_id = message.from_user.id
