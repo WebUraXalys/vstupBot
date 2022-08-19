@@ -2,19 +2,21 @@ import asyncio
 from dotenv import load_dotenv
 from aiogram import executor, types
 from aiogram.dispatcher import FSMContext
-
+from log import log_call, log_message
 import markup as nav
-from config import dp, db
+from config import dp, db, bot
 from search_machine import search
 from logic import average_bal, user_position, list_the_regions
 from states import ExamsMarks, SearchUniver, FirstName, SpecCodes, StartProcess
 from user_settings import change_spec, massive_change_spec, change_region, ap_univer, set_fn
 
+import time
 load_dotenv()
 
 
 @dp.message_handler(commands="start")
 async def start(message: types.Message):
+    start_time = time.time()
     await message.reply("Привіт\n"
                         "Тебе вітає vstupBot. Я створений, щоб допомогти абітурієнтам обрати найкращий університет для вступу на бюджет та стежити за місцем в рейтингу")
     await asyncio.sleep(3.5)
@@ -22,23 +24,29 @@ async def start(message: types.Message):
     #
     # await asyncio.sleep(5)
     await message.answer("Продовжуємо?", reply_markup=nav.continueMenu)
+    await log_message(message, start_time)
 
 
 @dp.callback_query_handler(text="yes",  state=None)
 async def check_profession(call: types.CallbackQuery):
+    start_time = time.time()
     await call.answer()
     await StartProcess.agreement.set()
     await call.message.answer("Ти вже визначився з своєю професією?", reply_markup=nav.check_profession)
+    await log_call(call, start_time)
 
 
 @dp.callback_query_handler(text="no")
 async def finish_process(call: types.CallbackQuery):
+    start_time = time.time()
     await call.answer()
     await call.message.answer("Гаразд. Роботу завершено")
+    await log_call(call, start_time)
 
 
 @dp.message_handler(state=StartProcess.agreement)
 async def check_profession_step_2(message: types.Message, state=FSMContext):
+    start_time = time.time()
     if message.text == "Ні":
         await message.answer(
             'Якщо ти ще не впевнений, рекомендуємо тобі пройти <a href="https://cdn.kname.edu.ua/index.php/abituriientu/test-z-proforiientatsii">цей тест</a>. Коли завершиш, повернись сюди й ми продовжимо роботу ',
@@ -52,22 +60,28 @@ async def check_profession_step_2(message: types.Message, state=FSMContext):
         await state.finish()
     elif message.text == "Ще ні":
         categories_menu = await nav.add_buttons()
+        await state.finish()
         await message.answer("Порадься з батьками, вчителем чи з кимось, чия думка для тебе є авторитетною. Однак ти можеш переглянути список категорій й вибрати ту, яка тобі найбільше сподобається", reply_markup=categories_menu)
     elif message.text == "Завершити":
         await state.finish()
         await message.answer("Роботу завершено")
-    else: await message.answer("Я розумію тільки окремі фрази. Будь ласка, використовуйте кнопки з готовими словами")
+    else:
+        await message.answer("Я розумію тільки окремі фрази. Будь ласка, використовуйте кнопки з готовими словами")
+    await log_message(message, start_time)
 
 
 @dp.callback_query_handler(text="спеціальність")
 async def auto_specialization(call: types.CallbackQuery):
+    start_time = time.time()
     await call.answer()
     categories_menu = await nav.add_buttons()
     await call.message.edit_text(text="Для початку оберіть категорію. Там ви знайдете список спеціальностей. Якщо ви вибрали не ту спеціальність, натисніть на кнопку ще раз, щоб її видалити", reply_markup=categories_menu)
+    await log_call(call, start_time)
 
 
 @dp.callback_query_handler(text_contains="category")
 async def category(call: types.CallbackQuery):
+    start_time = time.time()
     await call.answer()
     data = call.data.split()
     category_id = data[1]
@@ -77,42 +91,52 @@ async def category(call: types.CallbackQuery):
         page = "1"
     spec_lists = await nav.add_specs(category_id, page)
     await call.message.edit_text(text="Оберіть спеціальність з списку. Щоб скасувати вибір, нажміть на кнопку спеціальності ще раз", reply_markup=spec_lists)
+    await log_call(call, start_time)
 
 
 @dp.callback_query_handler(text_contains="spec")
 async def add_or_remove_spec(call: types.CallbackQuery):
+    start_time = time.time()
     await call.answer()
     data = call.data.split()
     spec_code = data[1]
     await change_spec(call, spec_code)
+    await log_call(call, start_time)
 
 
 @dp.callback_query_handler(text="код", state=None)
 async def specialization(call: types.CallbackQuery):
+    start_time = time.time()
     await call.answer()
     await call.message.answer("Через кому перечисли коди спеціальностей. Обов'язково залиште пробіл після розділового знаку\n\n"
                               "Приклад: 011, 121, 125, 123", reply_markup=types.ReplyKeyboardRemove())
     await SpecCodes.codes.set()
+    await log_call(call, start_time)
 
 
 @dp.message_handler(state=SpecCodes.codes)
 async def set_code(message: types.Message, state=FSMContext):
+    start_time = time.time()
     list_of_spec = message.text.split(", ")
     await massive_change_spec(message, list_of_spec)
     await state.finish()
+    await log_message(message, start_time)
 
 
 @dp.message_handler(lambda message: message.text == "Продовжити далі" or message.text == "Завершити обирати")
 async def choose_region(message: types.Message):
+    start_time = time.time()
     await message.answer("З спеціальностями покінчено, час перейти до наступного етапу", reply_markup=types.ReplyKeyboardRemove())
     await asyncio.sleep(1.5)
     db.users_specs.update_one({"user_id": message.from_user.id}, {"$unset": {"region": ""}})
     buttons = await nav.regions_buttons(callback="The end")
     await message.answer("Вам потрібно вибрати одну або кілька областей, де ви хотіли б навчатись. Щоб скасувати вибір області потрібно повторно натиснути на її кнопку", reply_markup=buttons)
+    await log_message(message, start_time)
 
 
 @dp.callback_query_handler(text_contains="change")
 async def call_choose_region(call: types.CallbackQuery):
+    start_time = time.time()
     await call.answer()
     db.users_specs.update_one({"user_id": call.from_user.id}, {"$unset": {"region": ""}})
     text = "Тепер вам потрібно вибрати одну або кілька областей, де ви хотіли б навчатись. Щоб скасувати вибір області, повторно натисніть на її кнопку"
@@ -124,13 +148,16 @@ async def call_choose_region(call: types.CallbackQuery):
         buttons = await nav.regions_buttons(callback="finish")
         await call.message.edit_text(text,
                                      reply_markup=buttons)
+    await log_call(call, start_time)
 
 
 @dp.callback_query_handler(text_contains="region")
 async def add_or_remove_region(call: types.CallbackQuery):
+    start_time = time.time()
     await call.answer()
     region_name = call.data.split()[1]
     await change_region(call, region_name)
+    await log_call(call, start_time)
 
 
 @dp.callback_query_handler(text="finish")
@@ -141,16 +168,19 @@ async def list_region(call: types.CallbackQuery):
 
 @dp.callback_query_handler(text_contains="The end", state=None)
 async def get_exams_result(call: types.CallbackQuery):
+    start_time = time.time()
     await call.answer()
     if "repeat" not in call.data.split():
         await list_the_regions(call)
     await call.message.answer("Тепер нам потрібно дізнатись ваші результати НМТ, щоб вирахувати середній бал для вибраної спеціальності.")
     await call.message.answer("Введіть бал з української мови у 200-бальній шкалі")
     await ExamsMarks.ua.set()
+    await log_call(call, start_time)
 
 
 @dp.message_handler(state=ExamsMarks.ua)
 async def get_ua(message: types.Message, state=FSMContext):
+    start_time = time.time()
     ua1 = message.text
     finita_la_comedia = False
     correct_ua = False
@@ -167,10 +197,12 @@ async def get_ua(message: types.Message, state=FSMContext):
         await state.update_data(ua=ua1, correct_ua=correct_ua)
         await message.answer("Введіть бал з математики у 200-бальній шкалі")
         await ExamsMarks.next()
+    await log_message(message, start_time)
 
 
 @dp.message_handler(state=ExamsMarks.math)
 async def get_math(message: types.Message, state=FSMContext):
+    start_time = time.time()
     math1 = message.text
     finita_la_comedia = False
     correct_math = False
@@ -188,10 +220,12 @@ async def get_math(message: types.Message, state=FSMContext):
 
         await message.answer("Введіть бал з історії у 200-бальній шкалі")
         await ExamsMarks.next()
+    await log_message(message, start_time)
 
 
 @dp.message_handler(state=ExamsMarks.history)
 async def get_history(message: types.Message, state=FSMContext):
+    start_time = time.time()
     mark_history = int(message.text)
     finita_la_comedia = False
     correct = False
@@ -219,6 +253,7 @@ async def get_history(message: types.Message, state=FSMContext):
                 f"Математика: {mark_math}\n\n"
                 "Якщо ви помилилися, нажміть кнопку", reply_markup=nav.save)
         await state.finish()
+        await log_message(message, start_time)
 
 
 @dp.callback_query_handler(text="save")
@@ -229,9 +264,11 @@ async def save(call: types.CallbackQuery):
 
 @dp.message_handler(lambda message: message.text == "Переглянути інформацію щодо спеціальностей")
 async def average(message: types.Message):
+    start_time = time.time()
     user_id = message.from_user.id
     user_data = db.users_specs.find_one({"user_id": user_id})
     await average_bal(message, user_data)
+    await log_message(message, start_time)
 
 
 @dp.message_handler(commands="menu")
@@ -246,14 +283,17 @@ async def change_menu(message: types.Message):
 
 @dp.message_handler(lambda message: message.text == "Пошук університету", state=None)
 async def search_uni(message: types.Message):
+    start_time = time.time()
     await message.answer("Введіть назву навчального закладу. Деякі університети як ЛНУ ім. І.Франка не вдасться знайти за абревіатурою. "
                          "Ви можете спробувати, але якщо пошук нічого не видасть, університет не надав нам своєї абревіатури\n"
                          "Якщо ви випадково викликали функцію, введіть \"закінчити\"")
     await SearchUniver.name.set()
+    await log_message(message, start_time)
 
 
 @dp.message_handler(state=SearchUniver.name)
 async def find_univer(message: types.Message, state=FSMContext):
+    start_time = time.time()
     if message.text.lower() == "закінчити":
         await message.answer("Роботу припинено")
         await state.finish()
@@ -261,17 +301,21 @@ async def find_univer(message: types.Message, state=FSMContext):
         array1 = message.text.split()
         await search(message, array1)
         await state.finish()
+    await log_message(message, start_time)
 
 
 @dp.callback_query_handler(text_contains="append")
 async def append_univer(call: types.CallbackQuery):
+    start_time = time.time()
     await call.answer()
     code = call.data.split()[1]
     await ap_univer(call, code)
+    await log_call(call, start_time)
 
 
 @dp.message_handler(lambda message: message.text == "Місце в рейтингу")
 async def users_rating(message: types.Message):
+    start_time = time.time()
     user_id = message.from_user.id
     try:
         user = db.users_specs.find_one({"user_id": user_id})
@@ -287,6 +331,7 @@ async def users_rating(message: types.Message):
     except KeyError:
         await FirstName.first_name.set()
         await message.answer("Щоб скористатись цією функцію, вкажіть своє прізвище наступним повідомленням")
+    await log_message(message, start_time)
 
 
 @dp.callback_query_handler(text="first_name", state=None)
@@ -301,6 +346,12 @@ async def set_first_name(message: types.Message, state=FSMContext):
     await set_fn(message)
     await message.answer("Прізвище внесено до бази даних.")
     await state.finish()
+
+
+@dp.message_handler(commands="get")
+async def get_chat_id(message: types.Message):
+    await message.answer(message.chat.id)
+    await bot.send_message()
 
 
 if __name__ == "__main__":
